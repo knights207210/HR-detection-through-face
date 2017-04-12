@@ -38,7 +38,7 @@ if nargin == 1
 %% path to output
     sVideo.pathtooutput_video = sprintf('%s/data/%s/%s.avi',cd,sVideo.name);
     sVideo.pathtooutput_figure = sprintf('%s/data/%s/tmp',cd,sVideo.name);
-    sVideo.pathtooutput_plot = sprintf('%s/%s.avi',cd,sVideo.name);
+    sVideo.pathtooutput_plot = sprintf('%s/data/%s',cd,sVideo.name);
 
 %%
     videoFileReader = vision.VideoFileReader(sVideo.path);
@@ -56,7 +56,7 @@ if nargin == 1
             sVideo.pathToColorTraces = sprintf('%s/data/%s/colortraces_DRMF1.mat',cd,sVideo.name);  %colortraces' path
             sVideo.pathToLandmarks = sprintf(cd,'%s/data/%s/landmarks_DRMF1.mat',cd,sVideo.name);    %landmarks'path
     
-        elseif flag_facefeaturemethos == 2
+        elseif flag_facefeaturemethod == 2
             sVideo.pathToColorTraces = sprintf('%s/data/%s/colortraces_DLIB1.mat',cd,sVideo.name);  %colortraces' path
             sVideo.pathToLandmarks = sprintf('%s/data/%s/landmarks_DLIB1.mat',cd,sVideo.name);    %landmarks'path
     

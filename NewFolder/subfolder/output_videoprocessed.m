@@ -61,7 +61,7 @@ load(path_colortraces);
     end
 %% output video
  picFormat = 'jpg';
- syscall = ['ffmpeg -f image2 -i' cd,'/data/',sResults.name,'/%d.',picFormat,' -r ',num2str(sResults.fps),' ',sResults.name,'.avi'];
+ syscall = ['ffmpeg -f image2 -i ' cd,'/data/',sResults.name,'/tmp/%d.',picFormat,' -r ',num2str(sResults.fps),' ',sResults.name,'.avi'];
  [status,cmdout] = system(syscall,'-echo');
         
 
