@@ -16,23 +16,22 @@ for n=sVideo.firstFrame:shift:sVideo.lastFrame
     temp=S(n-half:n+half).*window';
   catch
     disp('TODO, fix windowing');
-    m = m+1;
     continue;
   end
     SD(1,m)=std(temp,1);
     m=m+1;
 end
 
-plot(signal);
-saveas(gcf,[sVideo.pathToOutput_plot,'/','signal.jpg']);
-close(gcf);
+%plot(signal);
+%saveas(gcf,[sVideo.pathToOutput_plot,'/','signal.jpg']);
+%close(gcf);
 
-subplot(2,1,1);
-plot(signal);
-subplot(2,1,2);
-plot(SD);
-saveas(gcf,[sVideo.pathToOutput_plot,'/','SD_plot.jpg']);
-close(gcf);
+%subplot(2,1,1);
+%plot(signal);
+%subplot(2,1,2);
+%plot(SD);
+%saveas(gcf,[sVideo.pathToOutput_plot,'/','SD_plot.jpg']);
+%close(gcf);
 
 percentage = CParams.getParam('percentage');
 %warning('percentage parameter is not used!');
@@ -65,14 +64,15 @@ end
 %end
 
 %S=signal(1:index(1));
-S = signal(sVideo.firstFrame:pos(1)*window_length-half);
+S = signal(sVideo.firstFrame:pos(1)*shift-shift);
 for k = 1:N
+    l = pos(k)*shift+window_length-shift;
     tmp = k+1;
     if tmp > N
-        temp = signal(pos(k)*window_length+half:length(signal));
+        temp = signal(l:length(signal));
     else
-        n1 = pos(k)*window_length+half;
-        n2 = pos(k+1)*window_length-half;
+        n1 = l;
+        n2 = pos(k+1)*shift-shift;
         temp = signal(n1:n2);
     end
     S = [S,temp];
@@ -94,13 +94,13 @@ subplot(3,1,1);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for k=1:N
-    plot([pos(k)*window_length-half-sVideo.firstFrame,pos(k)*window_length-half-sVideo.firstFrame],[-0.01,0.01],'r:');
-    plot([pos(k)*window_length+half-sVideo.firstFrame,pos(k)*window_length+half-sVideo.firstFrame],[-0.01,0.01],'r:');
+    plot([pos(k)*shift-shift,pos(k)*shift-shift],[-0.01,0.01],'r:');
+    plot([pos(k)*shift+window_length-shift,pos(k)*shift+window_length-shift],[-0.01,0.01],'r:');
     hold on;
-    fill([pos(k)*window_length-half-sVideo.firstFrame,pos(k)*window_length+half-sVideo.firstFrame,pos(k)*window_length+half-sVideo.firstFrame,pos(k)*window_length-half-sVideo.firstFrame],[-0.01,-0.01,0.01,0.01],'red');
+    fill([pos(k)*shift-shift,pos(k)*shift+window_length-shift,pos(k)*shift+window_length-shift,pos(k)*shift-shift],[-0.01,-0.01,0.01,0.01],'red');
 end
 hold on;
-plot(signal(sVideo.firstFrame:sVideo.firstFrame+lastframe));
+plot(signal(sVideo.firstFrame:sVideo.lastFrame));
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 subplot(3,1,2);
@@ -112,8 +112,7 @@ bar(SD);
 hold on;
 plot([0,20],[threshold,threshold],'r:');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-saveas(gcf,[sVideo.pathToOutput_plot,'/','motionelimination_plot.jpg']);
-close(gcf);
+
 end
 
 
