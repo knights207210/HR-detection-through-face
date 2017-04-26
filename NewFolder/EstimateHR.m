@@ -1,4 +1,4 @@
-function [ sResults ] = EstimateHR( sVideo, options, CParams)
+function [ sResults ] = EstimateHR( sVideo, cParams)
 %ESTIMATEHR 
 % function to calculate heart rate from a video, calculte
 % groundtruth(optional)&colortraces(optional)
@@ -14,8 +14,6 @@ function [ sResults ] = EstimateHR( sVideo, options, CParams)
 %     sVideo.outFrame % 
 %     ...
 %
-%   -options:to decide which method to use/ which step to use
-%
 %
 %   -CParams:cParams class (optional, otherwise we use default settings)
 %   including lambda, percentage, threshold
@@ -28,141 +26,73 @@ function [ sResults ] = EstimateHR( sVideo, options, CParams)
 %   -sResults - struct with output
 %     % paths to saved files and the video (can be used for later calls)
 %     sResults.path 
-%     sResults.video.pathToLandmarks
-%     sResults.video.pathToColorTraces
+%     sResults.svVdeo.pathToLandmarks
+%     sResults.sVideo.pathToColorTraces
 %     % HR estimation results
 %     sResults.averageHR
 %     sResults.averageHR_GT 
 %     % some statistics
 %     sResults.afterMotionElimination
+%     sResults.usedParameters
+%
 
-%%
 addpath('subfolder');
 
-%% groundtruth
-flag_gt = options.getParam('calgt');
-if flag_gt == 1    %calculate the groundtruth
-    global pathtoECG
-    global i
-
-    sResults.averageHR_GT = cal_gt(pathtoECG,i);
-
-elseif flag_gt == 2   %import the gt
-    
-    sResults.averageHR_GT = groundtruth(i);
+%% parse input parameters and set sVideo paths etc
+if(nargin ==2)
+  [ sVideo,cParams ] = setHRParameters( sVideo, cParams );
+else
+  [ sVideo,cParams ] = setHRParameters( sVideo );
 end
-    
+%% groundtruth --> 
+% designing the creation and loading of ground truth 
+% inside an estimation function is bad practise -> evaluation of results
+% should be done in a seperate function after calling EstimateHR
+% (seperate method and evaluation! of the method)
+
+
+%% face tracking (landmark detection and roi)
+if cParams.getParam('calcLandmarks') == 1
+  sVideo.alreadyGotLandmarks = 0;
+  %% todo do landmarking in a seperate function (with debug output) 
+  %faceTracking(sVideo,cParams);
+else
+  sVideo.alreadyGotLandmarks = 1;
+end
 
 %% extract color traces
-if nargin == 2
-    options.addParam('facefeaturemethod',1);
-    options.addParam('ppgrecover',1);
-end 
-
-flag_colortraces = options.getParam('calcolortraces');
-if flag_colortraces == 1
-    [path_colortraces, path_landmarks] = extractcolortraces(sVideo,options,i);
-    sVideo.pathToColorTraces = path_colortraces;
-    sVideo.pathToLandmarks = path_landmarks;
-    
-elseif flag_colortraces == 2
-    sVideo.pathToColorTraces = colortraces(i);
-    sVideo.pathToLandmarks = landmarks(i);
+if cParams.getParam('calcColortraces') == 1
+    extractColortraces(sVideo,cParams);
 end
 
+%% todo plot debug view for roi and landmarks
 
+%% read meanvalues of rois
+mean_value = load(sVideo.pathToColorTraces,'mean_value');
+sub_mean_value = load(sVideo.pathToColorTraces,'sub_mean_value');
+mean_value = mean_value.mean_value;
+sub_mean_value = sub_mean_value.sub_mean_value;
 
-%% if three input arguments(with CParams)
-if nargin == 3
-    
-    %% read meanvalues
-    savepath = sVideo.pathToColorTraces;
-    mean_value = load(savepath,'mean_value');
-    mean_value = mean_value.mean_value;
-
-%% PPG signal processing (could choose method)
-    [HR,afterMotionElimination] = PPG_processing(mean_value,sVideo,CParams,options);
-    HR = HR.*60;
-    sResults.averageHR = mean(HR');
-
-%% sResults
-    sResults.path = sVideo.path;
-    sResults.pathToLandmarks = sVideo.pathToLandmarks;
-    sResults.pathToColorTraces = sVideo.pathToColorTraces;
-    sResults.pathToSD = sVideo.pathToSD;
-    sResults.afterMotionElimination = afterMotionElimination;   %rstore the signal after motion elimination
-    
-%% if two input arguments(no CParams) 
-elseif nargin == 2            %use defalut parameters
-
-%% set parameters
-    
-    CParams = C_params('HR extraction Parameter');    %set name
-    CParams.sDate =  datestr(now,'dd-mm-yy_HH-MM');   %set time
-
-% frames from video to extract
-    CParams.addParam('videoFramesToExtract', {[306 2135]});
-
-%normalizing parameters
-    meanNormalizationWinLengthInSec     = 0.8*3; % should be at least a pulse period
-    meanNormalizationWinLengthInFrames = roundNextOdd(sVideo.fps*meanNormalizationWinLengthInSec); 
-    CParams.addParam('meanNormalizationWinLengthInFrames', meanNormalizationWinLengthInFrames);
-%window has to be odd
-
-%motion elimination parameters
-    motionWinlengthInFrames = 31;
-    motionWindowShift = floor(motionWinlengthInFrames/2);
-    CParams.addParam('motionWinlengthInFrames', motionWinlengthInFrames);
-    CParams.addParam('motionWindowShift', motionWindowShift);
-
-%detrending method parameters
-    lambda1 = 55;
-    lambda2 = 56;
-    CParams.addParam('lambda1', lambda1);
-    CParams.addParam('lambda2', lambda2);
-
-%threshold percentage
-    percentage = 0.96;
-    CParams.addParam('percentage', percentage);
-    threshold = 0.001973102363443;
-    CParams.addParam('threshold',threshold);
-
-%PSD estimation parameters
-    psdWinLengthInSec     = 13;
-    psdWinLengthInFrames = round(videofps*13);
-    psdWinShift = videofps;
-    CParams.addParam('psdWinLengthInSec', psdWinLengthInSec);
-    CParams.addParam('psdWinLengthInFrames', psdWinLengthInFrames);
-    CParams.addParam('psdWinShift', psdWinShift);
-
-%additipnal parameters
-    extraFramesNeeded = ceil(meanNormalizationWinLengthInFrames/2);
-    CParams.addParam('videoAdditionalBorderFrames', extraFramesNeeded);
-
-
-%% read meanvalues
-    savepath = sVideo.pathToColorTraces;
-    mean_value = load(savepath,'mean_value');
-    mean_value = mean_value.mean_value;
-
-%% PPG signal processing (could choose method)
-    [HR,afterMotionElimination] = PPG_processing(mean_value,sVideo,CParams,ooptions);
-    HR = HR.*60;
-    sResults.averageHR = mean(HR');
-
-%% sResults
-    sResults.path = sVideo.path;
-    sResults.pathToLandmarks = sVideo.pathToLandmarks;
-    sResults.pathToColorTraces = sVideo.pathToColorTraces;
-    sResults.pathToSD = sVideo.pathToSD;
-    sResults.afterMotionElimination = afterMotionElimination;   %rstore the signal after motion elimination
+%% PPG signal processing 
+[HR,sVideo] = PPG_processing(mean_value,sVideo,cParams);
+saveas(gcf,[sVideo.pathToOutput_plot,'/','motionelimination_plot.jpg']);
+close(gcf);
+HR = HR.*60;
+sResults.vHR = HR;
+sResults.averageHR = mean(HR');
+%%sub region
+for m =1:2
+    [HR_sub{m},svideo] = PPG_processing(sub_mean_value{m},sVideo,cParams);
+    saveas(gcf,[sVideo.pathToOutput_plot,'/','motionelimination_plot_sub',num2str(m),'.jpg']);
+    close(gcf);
+    HR_sub{m}=HR_sub{m}.*60;
+    sResults.vHR_sub{m} = HR_sub{m};
+    sResults.averageHR_sub(m) = mean(HR_sub{m}');
 end
-%% check options and load default if nothing was set
+%% final output of measurements and video
 
-%% load video...
-
-%% ... 
-
-
+%% sResults
+sResults.sVideo = sVideo;
+sResults.cParams = cParams;
 end
 
