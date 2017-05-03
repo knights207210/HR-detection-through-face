@@ -108,6 +108,7 @@ cParams = insertIfNotExistent(cParams,'psdWinShift', floor(sVideo.fps));
 %additional parameters
 extraFramesNeeded = ceil(meanNormalizationWinLengthInFrames/2);
 cParams = insertIfNotExistent(cParams,'videoAdditionalBorderFrames', extraFramesNeeded);
+cParams = insertIfNotExistent(cParams,'multiply_factor_for_rectify', 1.1);
 
 %sVideo
 %extract first frame
