@@ -1,0 +1,105 @@
+function [S_normalization,pos,SD,threshold] = motion_elimination(signal,CParams,sVideo)
+
+S=signal;
+motionWinlengthInFrames = CParams.getParam('motionWinlengthInFrames');
+motionWindowShift = CParams.getParam('motionWindowShift');
+window_length = motionWinlengthInFrames;
+
+window=hann(window_length);
+shift=motionWindowShift;
+half=floor(window_length/2);
+
+%% segment the signal, calculate the SD and threshold
+m=1;
+for n=sVideo.firstFrame:shift:sVideo.lastFrame
+  try  
+    temp=S(n-half:n+half).*window';
+  catch
+    disp('TODO, fix windowing');
+    continue;
+  end
+    SD(1,m)=std(temp,1);
+    m=m+1;
+end
+
+percentage = CParams.getParam('percentage');
+%warning('percentage parameter is not used!');
+threshold = max(SD)*percentage;
+%SD_sort = sort(SD);
+%threshold = SD_sort(floor(length(SD)*percentage));
+%threshold = CParams.getParam('threshold');
+[~,pos]=find(SD>threshold);
+N=length(pos);
+
+%index=ones(1,length(S));
+%for k=1:N
+  % todo too much hardcoding here
+    %index(round((pos(k)-1)*shift-half+5*sVideo.fps+1:(pos(k)-1)*shift+half+5*sVideo.fps+1))=0;
+%end
+%index_flip=1-index;
+%count=sum(index_flip);
+%index=findflip(index);
+
+if N==0 
+    S=signal;
+    S_normalization = S;
+    return;
+end
+
+%if index==0 
+    %S=signal;
+    %lastframe=sVideo.lastFrame;
+    %S_normalization = S;
+    %return;
+%end
+
+%S=signal(1:index(1));
+S = signal(sVideo.firstFrame:pos(1)*shift-shift);
+for k = 1:N
+    l = pos(k)*shift+window_length-shift;
+    tmp = k+1;
+    if tmp > N
+        temp = signal(l:length(signal));
+    else
+        n1 = l;
+        n2 = pos(k+1)*shift-shift;
+        temp = signal(n1:n2);
+    end
+    S = [S,temp];
+end
+%for k=1:2:length(index)
+    %offset = signal(index(k))-signal(index(k+1));
+    %if k==length(index)-1
+        %temp = signal(index(k+1)+1:end)+offset;
+    %else
+        %temp = signal(index(k+1)+1:index(k+2))+offset;
+    %end
+    %S=[S,temp];
+%end
+S_normalization = S;
+figure;
+subplot(3,1,1);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+for k=1:N
+    plot([pos(k)*shift-shift,pos(k)*shift-shift],[-0.01,0.01],'r:');
+    plot([pos(k)*shift+window_length-shift,pos(k)*shift+window_length-shift],[-0.01,0.01],'r:');
+    hold on;
+    fill([pos(k)*shift-shift,pos(k)*shift+window_length-shift,pos(k)*shift+window_length-shift,pos(k)*shift-shift],[-0.01,-0.01,0.01,0.01],'red');
+end
+hold on;
+plot(signal(sVideo.firstFrame:sVideo.lastFrame));
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+subplot(3,1,2);
+plot(S);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+subplot(3,1,3);
+bar(SD);
+hold on;
+plot([0,20],[threshold,threshold],'r:');
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+end
+
+
