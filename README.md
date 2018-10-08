@@ -1,3 +1,3 @@
 # HR-detection-through-face
- __ Algorithm implementation and optimisation under practical scenarios: __
+ __Algorithm implementation and optimisation under practical scenarios:__
 I implemented a heart rate detection algorithm based on human face video using MATLAB. The algorithm detects the subject's face skin colour changes which is caused by cardiac pulse and estimates the heart rate. The whole algorithm involves four steps: face recognition and colour extraction, tackling illumination variation, removing disturbing segments and recovering HR signal using filters. What's more, I also optimised the algorithm under different application scenarios and proposed an updated algorithm specifically for head rotation situation.
